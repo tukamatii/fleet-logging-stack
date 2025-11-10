@@ -111,3 +111,9 @@ gateway:
       operator: "Equal"
       value: ""
       effect: "NoSchedule"
+
+monitoring:
+  selfMonitoring:
+    enabled: true
+    grafanaAgent:
+      installOperator: false
