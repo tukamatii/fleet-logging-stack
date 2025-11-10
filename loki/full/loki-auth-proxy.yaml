@@ -1,21 +1,21 @@
 ---
-# mimir-auth-proxy-deployment.yaml
+# loki-auth-proxy-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mimir-auth-proxy
-  namespace: mimir
+  name: loki-auth-proxy
+  namespace: loki
   labels:
-    app: mimir-auth-proxy
+    app: loki-auth-proxy
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mimir-auth-proxy
+      app: loki-auth-proxy
   template:
     metadata:
       labels:
-        app: mimir-auth-proxy
+        app: loki-auth-proxy
     spec:
       tolerations:
         - key: "node-role.kubernetes.io/infra"
@@ -37,8 +37,8 @@ spec:
           env:
             - name: LISTEN_PORT
               value: "8080"
-            - name: MIMIR_URL
-              value: "http://mimir.mimir.svc.cluster.local:8080"
+            - name: loki_URL
+              value: "http://loki.loki.svc.cluster.local:8080"
           volumeMounts:
             - name: script
               mountPath: /script
@@ -47,11 +47,11 @@ spec:
       volumes:
         - name: script
           configMap:
-            name: mimir-auth-proxy-script
+            name: loki-auth-proxy-script
             defaultMode: 0755
         - name: tokens
           secret:
-            secretName: mimir-orgid-tokens
+            secretName: loki-orgid-tokens
             items:
               - key: mapping.json
                 path: mapping.json
@@ -59,27 +59,27 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: mimir-orgid-tokens
-  namespace: mimir
+  name: loki-orgid-tokens
+  namespace: loki
 spec:
   secretStoreRef:
     name: bitwarden-secretsmanager
     kind: ClusterSecretStore
   target:
-    name: mimir-orgid-tokens
+    name: loki-orgid-tokens
     creationPolicy: Owner
   data:
     - secretKey: mapping.json
       remoteRef:
-        key: "mimir-orgid-tokens"
+        key: "loki-orgid-tokens"
 
 ---
-# mimir-auth-proxy-deployment.yaml
+# loki-auth-proxy-deployment.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mimir-auth-proxy-script
-  namespace: mimir
+  name: loki-auth-proxy-script
+  namespace: loki
 data:
   proxy.py: |
     #!/usr/bin/env python3
@@ -96,7 +96,7 @@ data:
     with open(MAPPING_FILE) as f:
         TOKEN_TO_ORG = json.load(f)
 
-    MIMIR_URL = os.getenv('MIMIR_URL', 'http://mimir.mimir.svc.cluster.local:8080')
+    loki_URL = os.getenv('loki_URL', 'http://loki.loki.svc.cluster.local:8080')
     LISTEN_PORT = int(os.getenv('LISTEN_PORT', '8080'))
 
     class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -123,9 +123,9 @@ data:
                 self.send_error(401, 'Unauthorized: invalid token')
                 return
 
-            # Формируем URL для Mimir
+            # Формируем URL для loki
             path = self.path
-            url = f"{MIMIR_URL.rstrip('/')}{path}"
+            url = f"{loki_URL.rstrip('/')}{path}"
 
             # Подготавливаем заголовки
             req_headers = dict(self.headers)
@@ -137,7 +137,7 @@ data:
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length) if content_length else None
 
-            # Отправляем запрос в Mimir
+            # Отправляем запрос в loki
             req = urllib.request.Request(url, data=body, headers=req_headers, method=self.command)
             try:
                 with urllib.request.urlopen(req) as resp:
@@ -154,18 +154,18 @@ data:
 
     if __name__ == '__main__':
         server = ThreadedHTTPServer(('0.0.0.0', LISTEN_PORT), ProxyHandler)
-        print(f"Starting mimir-auth-proxy on port {LISTEN_PORT}", flush=True)
+        print(f"Starting loki-auth-proxy on port {LISTEN_PORT}", flush=True)
         server.serve_forever()
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mimir-auth-proxy
-  namespace: mimir
+  name: loki-auth-proxy
+  namespace: loki
 spec:
   ports:
     - port: 8080
       targetPort: 8080
       name: http
   selector:
-    app: mimir-auth-proxy
+    app: loki-auth-proxy

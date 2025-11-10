@@ -1,0 +1,9 @@
+# DO NOT include in kustomize
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    okbtsp.corp/department: OIT
+    okbtsp.corp/owner: baranav
+    okbtsp.corp/project: loki
+  name: loki

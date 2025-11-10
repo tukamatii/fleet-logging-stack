@@ -2,29 +2,29 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: mimir-s3-secrets
-  namespace: mimir
+  name: loki-s3-secrets
+  namespace: loki
 spec:
   secretStoreRef:
     name: bitwarden-secretsmanager
     kind: ClusterSecretStore
   target:
-    name: mimir-s3-secrets
+    name: loki-s3-secrets
     creationPolicy: Owner
   dataFrom:
     - extract:
-        key: "mimir-minio-access"
+        key: "loki-minio-access"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mimir-headless
-  namespace: mimir
+  name: loki-headless
+  namespace: loki
 spec:
   clusterIP: None
   selector:
-    app: mimir
+    app: loki
   ports:
     - name: http
       port: 8080
@@ -40,18 +40,18 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mimir
-  namespace: mimir
+  name: loki
+  namespace: loki
 spec:
-  serviceName: mimir-headless
+  serviceName: loki-headless
   replicas: 3
   selector:
     matchLabels:
-      app: mimir
+      app: loki
   template:
     metadata:
       labels:
-        app: mimir
+        app: loki
     spec:
       tolerations:
         - key: "node-role.kubernetes.io/infra"
@@ -66,11 +66,11 @@ spec:
                   - key: node-role.kubernetes.io/infra
                     operator: Exists
       containers:
-        - name: mimir
-          image: grafana/mimir:3.0.0
+        - name: loki
+          image: grafana/loki:3.0.0
           args:
             - -target=all
-            - -config.file=/etc/mimir/mimir.yaml
+            - -config.file=/etc/loki/loki.yaml
             - -config.expand-env=true
           ports:
             - containerPort: 8080
@@ -86,10 +86,10 @@ spec:
                   fieldPath: status.podIP
           envFrom:
             - secretRef:
-                name: mimir-s3-secrets
+                name: loki-s3-secrets
           volumeMounts:
             - name: config
-              mountPath: /etc/mimir
+              mountPath: /etc/loki
             - name: data
               mountPath: /data
             - name: custom-ca
@@ -115,7 +115,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: mimir-config
+            name: loki-config
         - name: custom-ca
           configMap:
             name: custom-ca-certificates
