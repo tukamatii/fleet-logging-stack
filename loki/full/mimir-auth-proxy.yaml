@@ -1,0 +1,171 @@
+---
+# mimir-auth-proxy-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mimir-auth-proxy
+  namespace: mimir
+  labels:
+    app: mimir-auth-proxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mimir-auth-proxy
+  template:
+    metadata:
+      labels:
+        app: mimir-auth-proxy
+    spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/infra"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/infra
+                    operator: Exists
+      containers:
+        - name: proxy
+          image: python:3.11-alpine
+          command: ["python3", "/script/proxy.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: LISTEN_PORT
+              value: "8080"
+            - name: MIMIR_URL
+              value: "http://mimir.mimir.svc.cluster.local:8080"
+          volumeMounts:
+            - name: script
+              mountPath: /script
+            - name: tokens
+              mountPath: /etc/tokens
+      volumes:
+        - name: script
+          configMap:
+            name: mimir-auth-proxy-script
+            defaultMode: 0755
+        - name: tokens
+          secret:
+            secretName: mimir-orgid-tokens
+            items:
+              - key: mapping.json
+                path: mapping.json
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mimir-orgid-tokens
+  namespace: mimir
+spec:
+  secretStoreRef:
+    name: bitwarden-secretsmanager
+    kind: ClusterSecretStore
+  target:
+    name: mimir-orgid-tokens
+    creationPolicy: Owner
+  data:
+    - secretKey: mapping.json
+      remoteRef:
+        key: "mimir-orgid-tokens"
+
+---
+# mimir-auth-proxy-deployment.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-auth-proxy-script
+  namespace: mimir
+data:
+  proxy.py: |
+    #!/usr/bin/env python3
+    import json
+    import os
+    import sys
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    from socketserver import ThreadingMixIn
+    import urllib.request
+    import urllib.error
+
+    # Загружаем маппинг из файла
+    MAPPING_FILE = '/etc/tokens/mapping.json'
+    with open(MAPPING_FILE) as f:
+        TOKEN_TO_ORG = json.load(f)
+
+    MIMIR_URL = os.getenv('MIMIR_URL', 'http://mimir.mimir.svc.cluster.local:8080')
+    LISTEN_PORT = int(os.getenv('LISTEN_PORT', '8080'))
+
+    class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+        pass
+
+    class ProxyHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.proxy_request()
+        def do_POST(self):
+            self.proxy_request()
+        def do_PUT(self):
+            self.proxy_request()
+
+        def proxy_request(self):
+            # Проверка заголовка авторизации
+            auth = self.headers.get('Authorization', '')
+            if not auth.startswith('Bearer '):
+                self.send_error(401, 'Unauthorized: missing or invalid Bearer token')
+                return
+
+            token = auth[7:].strip()
+            org_id = TOKEN_TO_ORG.get(token)
+            if not org_id:
+                self.send_error(401, 'Unauthorized: invalid token')
+                return
+
+            # Формируем URL для Mimir
+            path = self.path
+            url = f"{MIMIR_URL.rstrip('/')}{path}"
+
+            # Подготавливаем заголовки
+            req_headers = dict(self.headers)
+            req_headers['X-Scope-OrgID'] = org_id
+            req_headers.pop('Host', None)
+            req_headers.pop('Authorization', None)
+
+            # Читаем тело запроса, если есть
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length) if content_length else None
+
+            # Отправляем запрос в Mimir
+            req = urllib.request.Request(url, data=body, headers=req_headers, method=self.command)
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    self.send_response(resp.status)
+                    for key, value in resp.headers.items():
+                        if key.lower() not in ('transfer-encoding', 'connection'):
+                            self.send_header(key, value)
+                    self.end_headers()
+                    self.wfile.write(resp.read())
+            except urllib.error.HTTPError as e:
+                self.send_error(e.code, str(e.reason))
+            except Exception as e:
+                self.send_error(502, f'Bad Gateway: {e}')
+
+    if __name__ == '__main__':
+        server = ThreadedHTTPServer(('0.0.0.0', LISTEN_PORT), ProxyHandler)
+        print(f"Starting mimir-auth-proxy on port {LISTEN_PORT}", flush=True)
+        server.serve_forever()
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-auth-proxy
+  namespace: mimir
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: mimir-auth-proxy

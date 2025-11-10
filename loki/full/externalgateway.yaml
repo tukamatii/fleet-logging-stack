@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir
+  namespace: mimir
+  labels:
+    app: mimir
+spec:
+  type: ClusterIP
+  selector:
+    app: mimir
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+
+---
+# httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mimir-route
+  namespace: mimir
+spec:
+  parentRefs:
+    - name: shared-gateway
+      namespace: cilium-gateway
+      sectionName: https-corp
+  hostnames:
+    - "mimir.okbtsp.corp"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: mimir-auth-proxy
+          port: 8080
