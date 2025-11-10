@@ -15,8 +15,15 @@ targetCustomizations:
     clusterSelector:
       matchLabels:
         okbtsp.corp/monitoring-aggregator: "true"
+    helm:
+      takeOwnership: true
+      chart: loki-simple-scalable
+      repo: https://grafana.github.io/helm-charts
+      version: 1.8.11
+      valuesFiles:
+        - loki-values.yaml
     kustomize:
-      dir: "full"
+      dir: "additional"
 
   - name: namespace-only-placeholder
     clusterSelector:
@@ -29,3 +36,4 @@ dependsOn:
   - selector:
       matchLabels:
         okbtsp.corp/project: external-secrets
+  - name: prom-operator

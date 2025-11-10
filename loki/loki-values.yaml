@@ -1,0 +1,123 @@
+loki:
+  storage:
+    bucketNames:
+      chunks: loki-storage
+      ruler: loki-storage
+      admin: loki-storage
+    type: s3
+    s3:
+      endpoint: https://minio.okbtsp.corp
+      region: eu-central-1
+      s3ForcePathStyle: true
+      secretAccessKey: ${`${S3_PASSWORD}`}
+      accessKeyId: ${`${S3_LOGIN}`}
+
+write:
+  replicas: 3
+  image:
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: In
+                values: [""]
+  tolerations:
+    - key: "node-role.kubernetes.io/infra"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  persistence:
+    size: 10Gi
+    storageClass: vsphere-csi
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: loki-s3-secrets
+  extraVolumeMounts:
+    - name: custom-ca
+      mountPath: /etc/ssl/certs/internal-ca.crt
+      subPath: ca.crt
+      readOnly: true
+  extraVolumes:
+    - name: custom-ca
+      configMap:
+        name: custom-ca-certificates
+
+read:
+  replicas: 3
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: In
+                values: [""]
+  tolerations:
+    - key: "node-role.kubernetes.io/infra"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  persistence:
+    size: 10Gi
+    storageClass: vsphere-csi
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: loki-s3-secrets
+  extraVolumeMounts:
+    - name: custom-ca
+      mountPath: /etc/ssl/certs/internal-ca.crt
+      subPath: ca.crt
+      readOnly: true
+  extraVolumes:
+    - name: custom-ca
+      configMap:
+        name: custom-ca-certificates
+
+gateway:
+  replicas: 2
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              {{- include "loki.writeSelectorLabels" . | nindent 10 }}
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: In
+                values: [""]
+  tolerations:
+    - key: "node-role.kubernetes.io/infra"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+
+monitoring:
+  selfMonitoring:
+    enabled: true
+    grafanaAgent:
+      installOperator: false
