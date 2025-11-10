@@ -38,7 +38,7 @@ spec:
             - name: LISTEN_PORT
               value: "3100"
             - name: LOKI_URL
-              value: "http://loki-gateway.loki.svc.cluster.local:3100"
+              value: "http://loki-gateway.loki.svc.cluster.local:80"
           volumeMounts:
             - name: script
               mountPath: /script
@@ -96,7 +96,7 @@ data:
     with open(MAPPING_FILE) as f:
         TOKEN_TO_ORG = json.load(f)
 
-    loki_URL = os.getenv('loki_URL', 'http://loki-gateway.loki.svc.cluster.local:8080')
+    loki_URL = os.getenv('loki_URL', 'http://loki-gateway.loki.svc.cluster.local:80')
     LISTEN_PORT = int(os.getenv('LISTEN_PORT', '8080'))
 
     class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
