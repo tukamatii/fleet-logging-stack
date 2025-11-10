@@ -8,8 +8,8 @@ loki:
     s3:
       endpoint: https://minio.okbtsp.corp
       region: eu-central-1
-      secretAccessKey: ${AWS_ACCESS_KEY_ID}
-      accessKeyId: ${AWS_SECRET_ACCESS_KEY}
+      secretAccessKey: ${`${AWS_ACCESS_KEY_ID}`}
+      accessKeyId: ${`${AWS_SECRET_ACCESS_KEY}`}
       s3ForcePathStyle: true
 
 write:
