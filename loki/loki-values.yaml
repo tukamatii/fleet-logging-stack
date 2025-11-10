@@ -9,8 +9,8 @@ loki:
       endpoint: https://minio.okbtsp.corp
       region: eu-central-1
       s3ForcePathStyle: true
-      secretAccessKey: ${`${S3_LOGIN}`}
-      accessKeyId: ${`${S3_PASSWORD}`}
+      secretAccessKey: ${`${S3_PASSWORD}`}
+      accessKeyId: ${`${S3_LOGIN}`}
 
 write:
   replicas: 3
