@@ -22,6 +22,8 @@ targetCustomizations:
       version: 1.8.11
       valuesFiles:
         - loki-values.yaml
+    kustomize:
+      dir: "additional"
 
   - name: namespace-only-placeholder
     clusterSelector:

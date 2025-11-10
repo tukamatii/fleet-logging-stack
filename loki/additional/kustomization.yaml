@@ -2,5 +2,3 @@ resources:
   - secrets.yaml
   - cm.yaml
   - loki-auth-proxy.yaml
-  - externalgateway.yaml
-  - secrets.yaml

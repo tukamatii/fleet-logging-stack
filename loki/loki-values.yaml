@@ -88,6 +88,7 @@ read:
         name: custom-ca-certificates
 
 gateway:
+  replicas: 2
   affinity: |
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
