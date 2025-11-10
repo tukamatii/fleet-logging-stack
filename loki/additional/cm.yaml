@@ -2,7 +2,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: loki-config
-  namespace: loki
 data:
   loki.yaml: |
     server:
@@ -11,51 +10,55 @@ data:
 
     memberlist:
       join_members:
-        - loki-headless.loki.svc.cluster.local:7946
-
-    ingester:
-      lifecycler:
-        ring:
-          kvstore:
-            store: memberlist
-          replication_factor: 3
-      wal:
-        enabled: true
-        dir: /data/wal
+        - loki-headless.loki.svc.cluster.local
+      advertise_addr: ${POD_IP}
+      rejoin_interval: 0s
 
     distributor:
       ring:
         kvstore:
           store: memberlist
+        instance_addr: ${POD_IP}
 
-    querier:
-      query_timeout: 1m
+    ingester:
+      ring:
+        kvstore:
+          store: memberlist
+        replication_factor: 3
+        instance_addr: ${POD_IP}
 
-    storage_config:
-      aws:
-        s3: ${S3_BUCKET}
-        endpoint: ${S3_ENDPOINT}
-        access_key_id: ${AWS_ACCESS_KEY_ID}
-        secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+    blocks_storage:
+      backend: s3
+      s3:
+        endpoint: minio.okbtsp.corp
+        bucket_name: loki-storage
+        access_key_id: ${S3_ACCESS_KEY}
+        secret_access_key: ${S3_SECRET_KEY}
         insecure: false
-        s3forcepathstyle: true
-        ca_file: /etc/ssl/certs/internal-ca.crt
-      index_queries_cache_config:
-        enabled: true
-
-    schema_config:
-      configs:
-        - from: 2024-01-01
-          store: boltdb-shipper
-          object_store: aws
-          schema: v11
-          index:
-            prefix: loki_index_
-            period: 24h
+      tsdb:
+        dir: /data/tsdb
 
     compactor:
-      shared_store: aws
-      working_directory: /data/compactor
+      data_dir: /data/compactor
+      sharding_ring:
+        kvstore:
+          store: memberlist
+        instance_addr: ${POD_IP}
+
+    ruler:
+      rule_path: /data/ruler
+      ring:
+        kvstore:
+          store: memberlist
+        instance_addr: ${POD_IP}
+
+    limits:
+      compactor_blocks_retention_period: 30d
+      ingestion_rate: 2000000
+      ingestion_burst_size: 4000000
+      max_global_series_per_user: 10000000
+      max_fetched_series_per_query: 4000000
+      max_fetched_chunks_per_query: 80000000
 
 ---
 apiVersion: v1

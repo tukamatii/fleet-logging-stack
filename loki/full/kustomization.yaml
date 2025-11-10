@@ -1,5 +1,0 @@
-resources:
-  - sts.yaml
-  - cm.yaml
-  - mimir-auth-proxy.yaml
-  - externalgateway.yaml

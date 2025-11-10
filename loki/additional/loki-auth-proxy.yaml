@@ -37,7 +37,7 @@ spec:
           env:
             - name: LISTEN_PORT
               value: "8080"
-            - name: loki_URL
+            - name: LOKI_URL
               value: "http://loki.loki.svc.cluster.local:8080"
           volumeMounts:
             - name: script
