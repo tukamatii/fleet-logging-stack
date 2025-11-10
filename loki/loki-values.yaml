@@ -23,9 +23,10 @@ write:
               {{- include "loki.writeSelectorLabels" . | nindent 10 }}
           topologyKey: kubernetes.io/hostname
     nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
               - key: node-role.kubernetes.io/infra
                 operator: In
                 values: [""]
@@ -51,7 +52,7 @@ write:
         name: custom-ca-certificates
 
 read:
-  replicas: 1
+  replicas: 3
   affinity: |
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -60,9 +61,10 @@ read:
               {{- include "loki.writeSelectorLabels" . | nindent 10 }}
           topologyKey: kubernetes.io/hostname
     nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
               - key: node-role.kubernetes.io/infra
                 operator: In
                 values: [""]
@@ -97,9 +99,10 @@ gateway:
               {{- include "loki.writeSelectorLabels" . | nindent 10 }}
           topologyKey: kubernetes.io/hostname
     nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 50
+          preference:
+            matchExpressions:
               - key: node-role.kubernetes.io/infra
                 operator: In
                 values: [""]
