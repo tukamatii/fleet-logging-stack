@@ -51,7 +51,7 @@ write:
         name: custom-ca-certificates
 
 read:
-  replicas: 3
+  replicas: 1
   affinity: |
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
