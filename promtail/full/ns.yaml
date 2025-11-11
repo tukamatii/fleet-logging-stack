@@ -1,0 +1,12 @@
+# DO NOT include in kustomize
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    okbtsp.corp/department: OIT
+    okbtsp.corp/owner: baranav
+    okbtsp.corp/project: promtail
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  name: promtail
