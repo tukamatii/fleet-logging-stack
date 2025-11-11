@@ -16,6 +16,7 @@ kustomize:
 
 helm:
   chart: ./helm
+  takeOwnership: true
   values:
     clusterName: ${ if hasKey .ClusterLabels "management.cattle.io/cluster-display-name" }${ get .ClusterLabels "management.cattle.io/cluster-display-name" }${ else }${ .ClusterName }${ end }
 
