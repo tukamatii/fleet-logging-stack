@@ -17,6 +17,7 @@ spec:
     force: true
   forceSyncGeneration: 2
   paths:
+    - promtail
     - loki
   pollingInterval: 1m0s
   repo: ssh://git@gitlab.okbtsp.corp:2222/oit/k8s/fleet-logging-stack.git
