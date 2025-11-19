@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: placeholder-config
+data:
+  laceholder-config.yaml: |
+    there is nothing

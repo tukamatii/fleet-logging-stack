@@ -29,6 +29,8 @@ targetCustomizations:
     clusterSelector:
       matchLabels:
         okbtsp.corp/department: OIT
+    helm:
+      takeOwnership: true
     kustomize:
       dir: "base"
 
