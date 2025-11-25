@@ -1,0 +1,1 @@
+<!-- TODO Нужно добавить tempo / otelcol + cilium. Cilium пишет в otelcol deployment, otelcol добавляет токен и пишет в tempo -->
